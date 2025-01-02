@@ -8,29 +8,56 @@ import { Input } from "../ui/input";
 const socket = io('https://rps-arcade.onrender.com', { transports: ['websocket'], reconnection: true });
 
 type LastResult = {
-    result: 'creator' | 'opponent' | 'empate';
+    result: 'creator' | 'opponent' | 'tie';
     moves: {
         creator: { choice: string; bet: number };
         opponent: { choice: string; bet: number };
     };
 };
 
+interface Player {
+    id: string;
+    username: string;
+    points: number;
+    ready: boolean;
+}
+
+interface GameSession {
+    id: string;
+    creator: Player;
+    opponent: Player | null;
+    status: 'waiting' | 'playing' | 'finished';
+    currentRound: {
+        moves: Record<string, { choice: string; bet: number }>;
+        bet: number;
+    } | null;
+}
+
+type Choice = 'rock' | 'paper' | 'scissors';
+
+type Choices = {
+    [K in Choice]: {
+        emoji: string;
+        beats: Choice;
+        weak: Choice;
+        name: string;
+    }
+};
+
 export default function MultiplayerRPS() {
     const [username, setUsername] = useState('');
     const [roomId, setRoomId] = useState('');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    const [gameSession, setGameSession] = useState<never>(null);
+    const [gameSession, setGameSession] = useState<GameSession | null>(null);
     const [currentBet] = useState(100);
     const [gameStatus, setGameStatus] = useState('init');
     const [lastResult, setLastResult] = useState<LastResult | null>(null);
     const [error, setError] = useState('');
     const [waitingForOpponent, setWaitingForOpponent] = useState(false);
 
-    const choices = {
-        piedra: { emoji: '✊', beats: 'tijera', weak: 'papel', name: 'ROCK' },
-        papel: { emoji: '✋', beats: 'piedra', weak: 'tijera', name: 'PAPER' },
-        tijera: { emoji: '✌️', beats: 'papel', weak: 'piedra', name: 'SCISSORS' }
+    const choices: Choices = {
+        rock: { emoji: '✊', beats: 'scissors', weak: 'paper', name: 'ROCK' },
+        paper: { emoji: '✋', beats: 'rock', weak: 'scissors', name: 'PAPER' },
+        scissors: { emoji: '✌️', beats: 'paper', weak: 'rock', name: 'SCISSORS' }
     };
 
     useEffect(() => {
@@ -108,7 +135,7 @@ export default function MultiplayerRPS() {
         });
     };
 
-    const makeChoice = (choice: string) => {
+    const makeChoice = (choice: Choice) => {
         if (gameSession?.status === 'playing') {
             socket.emit('make_move', { choice, bet: currentBet });
             setWaitingForOpponent(true);
@@ -128,7 +155,6 @@ export default function MultiplayerRPS() {
     return (
         <div className="fixed inset-0 bg-[#000B3B] bg-gradient-to-br from-[#000B3B] to-[#001666] overflow-hidden text-white">
             <div className="h-full flex flex-col p-2 md:p-4">
-                {/* Header */}
                 <header className="bg-[#000850] rounded-lg p-3 md:p-4 border-2 border-blue-400 shadow-[0_0_10px_rgba(0,128,255,0.5)]">
                     <div className="flex justify-between items-center">
                         <h1 className="text-2xl md:text-4xl lg:text-5xl font-bold text-blue-300 tracking-wider">
@@ -137,7 +163,6 @@ export default function MultiplayerRPS() {
                     </div>
                 </header>
 
-                {/* Main content */}
                 <main className="flex-1 flex flex-col gap-3 mt-2 relative">
                     {error && (
                         <div className="absolute top-0 left-0 right-0 z-50 bg-red-900/50 border-2 border-red-500 text-white p-4 rounded-lg text-center animate-pulse">
@@ -155,7 +180,7 @@ export default function MultiplayerRPS() {
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value.toUpperCase())}
                                         className="w-full bg-black/60 border-2 border-blue-400 text-blue-300 p-4 text-xl rounded-lg placeholder:text-blue-300/50 uppercase"
-                                        style={{ textTransform: 'uppercase' }}
+                                        style={{textTransform: 'uppercase'}}
                                     />
                                     <div className="space-y-4">
                                         <Button
@@ -212,14 +237,13 @@ export default function MultiplayerRPS() {
 
                     {(gameStatus === 'playing' || gameStatus === 'finished') && gameSession && (
                         <div className="flex-1 flex flex-col gap-4">
-                            {/* Scoreboard */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-[#000850] p-4 rounded-lg border-2 border-blue-400">
                                     <div className="text-lg md:text-xl text-blue-300 mb-1">
-                                        {getPlayerInfo()?.player.username}
+                                        {getPlayerInfo()?.player?.username}
                                     </div>
                                     <div className="text-2xl md:text-3xl text-yellow-400">
-                                        {getPlayerInfo()?.player.points} PTS
+                                        {getPlayerInfo()?.player?.points} PTS
                                     </div>
                                 </div>
                                 <div className="bg-[#000850] p-4 rounded-lg border-2 border-blue-400">
@@ -232,42 +256,40 @@ export default function MultiplayerRPS() {
                                 </div>
                             </div>
 
-                            {/* Game Area */}
                             <div className="flex-1 flex items-center justify-center bg-[#000850] p-4 rounded-lg border-2 border-blue-400">
                                 <div className="grid grid-cols-3 gap-4 w-full max-w-3xl mx-auto">
                                     {Object.entries(choices).map(([key, value]) => (
                                         <Button
                                             key={key}
-                                            onClick={() => makeChoice(key)}
+                                            onClick={() => makeChoice(key as Choice)}
                                             disabled={gameStatus === 'finished' || waitingForOpponent}
                                             className={`
-                                            aspect-square flex flex-col items-center justify-center
-                                            ${waitingForOpponent
+                                               aspect-square flex flex-col items-center justify-center
+                                               ${waitingForOpponent
                                                 ? 'bg-gray-800/50 cursor-not-allowed'
                                                 : 'bg-blue-900/50 hover:bg-blue-800/50'}
-                                            rounded-lg border-2 border-blue-400
-                                            transition-all duration-300 hover:scale-[0.98]
-                                            p-4 md:p-6
-                                        `}
+                                               rounded-lg border-2 border-blue-400
+                                               transition-all duration-300 hover:scale-[0.98]
+                                               p-4 md:p-6
+                                           `}
                                         >
-                                        <span className="text-5xl md:text-7xl lg:text-8xl mb-4">
-                                            {value.emoji}
-                                        </span>
+                                           <span className="text-5xl md:text-7xl lg:text-8xl mb-4">
+                                               {value.emoji}
+                                           </span>
                                             <span className="text-lg md:text-xl text-blue-300">
-                                            {value.name}
-                                        </span>
+                                               {value.name}
+                                           </span>
                                         </Button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Result */}
                             {lastResult && (
                                 <div className="bg-[#000850] p-4 rounded-lg border-2 border-blue-400 text-center">
                                     <div className="text-3xl md:text-4xl text-yellow-400 mb-4 font-bold">
                                         {(() => {
                                             const isCreator = socket.id === gameSession.creator.id;
-                                            if (lastResult.result === 'empate') return 'DRAW!';
+                                            if (lastResult.result === 'tie') return 'DRAW!';
                                             if ((isCreator && lastResult.result === 'creator') ||
                                                 (!isCreator && lastResult.result === 'opponent')) {
                                                 return '🏆 WINNER! 🏆';
@@ -277,11 +299,11 @@ export default function MultiplayerRPS() {
                                     </div>
                                     <div className="flex items-center justify-center gap-6 md:gap-10">
                                         <div className="text-5xl md:text-7xl">
-                                            {choices[lastResult.moves.creator.choice].emoji}
+                                            {choices[lastResult.moves.creator.choice as Choice].emoji}
                                         </div>
                                         <div className="text-2xl md:text-3xl text-yellow-400 font-bold">VS</div>
                                         <div className="text-5xl md:text-7xl">
-                                            {choices[lastResult.moves.opponent.choice].emoji}
+                                            {choices[lastResult.moves.opponent.choice as Choice].emoji}
                                         </div>
                                     </div>
                                 </div>
@@ -290,7 +312,6 @@ export default function MultiplayerRPS() {
                     )}
                 </main>
 
-                {/* Game Status */}
                 <footer className="mt-2 bg-[#000850] p-2 rounded-lg border-2 border-blue-400">
                     <div className="text-center text-sm md:text-base text-blue-300">
                         {gameStatus === 'init' && 'READY TO PLAY'}

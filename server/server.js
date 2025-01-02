@@ -4,7 +4,6 @@ const app = express();
 const http = require('http').createServer(app);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Actualiza la configuración CORS
 const io = require('socket.io')(http, {
     cors: {
         origin: FRONTEND_URL,
@@ -15,12 +14,11 @@ const io = require('socket.io')(http, {
 
 app.use(cors());
 
-// Almacenamiento de sesiones y salas
 const sessions = new Map();
 const rooms = new Map();
 
 io.on('connection', (socket) => {
-    console.log('Usuario conectado:', socket.id);
+    console.log('User connected:', socket.id);
 
     socket.on('create_game', (username) => {
         const roomId = Math.random().toString(36).substring(7);
@@ -46,12 +44,12 @@ io.on('connection', (socket) => {
     socket.on('join_game', ({ roomId, username }) => {
         const session = rooms.get(roomId);
         if (!session) {
-            socket.emit('error', { message: 'Sala no encontrada' });
+            socket.emit('error', { message: 'Room not found' });
             return;
         }
 
         if (session.opponent) {
-            socket.emit('error', { message: 'Sala llena' });
+            socket.emit('error', { message: 'Room is full' });
             return;
         }
 
@@ -91,7 +89,7 @@ io.on('connection', (socket) => {
             const opponentMove = session.currentRound.moves[session.opponent.id];
             const result = determineWinner(creatorMove.choice, opponentMove.choice);
 
-            if (result !== 'empate') {
+            if (result !== 'tie') {
                 const winner = result === 'creator' ? session.creator : session.opponent;
                 const loser = result === 'creator' ? session.opponent : session.creator;
                 winner.points += bet;
@@ -134,12 +132,12 @@ io.on('connection', (socket) => {
 });
 
 function determineWinner(choice1, choice2) {
-    if (choice1 === choice2) return 'empate';
-    const rules = { piedra: 'tijera', papel: 'piedra', tijera: 'papel' };
+    if (choice1 === choice2) return 'tie';
+    const rules = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
     return rules[choice1] === choice2 ? 'creator' : 'opponent';
 }
 
 const PORT = process.env.PORT || 3001;
 http.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
