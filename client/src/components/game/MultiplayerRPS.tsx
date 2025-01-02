@@ -45,7 +45,7 @@ type Choices = {
 };
 
 
-const playSound = (soundPath) => {
+const playSound = (soundPath: string) => {
     const audio = new Audio(soundPath);
     audio.play();
 };
