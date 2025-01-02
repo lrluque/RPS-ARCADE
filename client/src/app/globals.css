@@ -1,0 +1,47 @@
+/* globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slot-spin {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes bounce-shine {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(100%);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: brightness(120%);
+  }
+}
+
+.slot-text {
+  position: relative;
+  color: #FFD700;
+  font-family: 'Arial Black', sans-serif;
+  -webkit-text-stroke: 2px #FF4500;
+  filter: drop-shadow(0 2px 4px rgba(255, 69, 0, 0.5));
+}
+
+.casino-button {
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  box-shadow: 0 4px 0 #CC8800,
+  inset 0 2px 4px rgba(255, 255, 255, 0.5),
+  inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  transform-style: preserve-3d;
+  transition: all 0.2s ease;
+}
+
+.casino-button:hover {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #CC8800;
+}
+
+.golden-frame {
+  background: linear-gradient(45deg, #FFD700, #FFA500, #FF8C00, #FFD700);
+  animation: bounce-shine 2s infinite;
+}
