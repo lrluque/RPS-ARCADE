@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "client": "npm run dev --prefix client",
-    "server": "node server/server.js",
-    "dev": "concurrently \"npm run client\" \"npm run server\""
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && node server.js",
+    "dev": "concurrently \"cd client && npm run dev\" \"cd server && node server.js\""
   },
   "keywords": [],
   "author": "",

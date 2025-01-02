@@ -1,9 +1,9 @@
-import MultiplayerRPS from '@/components/game/MultiplayerRPS'
+import dynamic from 'next/dynamic'
+
+const MultiplayerRPS = dynamic(() => import('@/components/game/MultiplayerRPS'), {
+    ssr: false
+})
 
 export default function Home() {
-  return (
-      <main className="min-h-screen flex items-center justify-center p-4">
-        <MultiplayerRPS />
-      </main>
-  )
+    return <MultiplayerRPS />
 }
