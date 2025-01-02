@@ -44,6 +44,12 @@ type Choices = {
     }
 };
 
+
+const playSound = (soundPath) => {
+    const audio = new Audio(soundPath);
+    audio.play();
+};
+
 export default function MultiplayerRPS() {
     const [username, setUsername] = useState('');
     const [roomId, setRoomId] = useState('');
@@ -73,16 +79,22 @@ export default function MultiplayerRPS() {
             setGameSession(session);
             setGameStatus(session.status);
             setWaitingForOpponent(false);
+            playSound("/sounds/join_room.wav")
         });
 
-        socket.on('round_completed', ({ session, result, moves }) => {
-            console.log('Round completed:', { session, result, moves });
+        socket.on("round_completed", ({ session, result, moves }) => {
             setGameSession(session);
-            setLastResult({
-                result: result,
-                moves: moves
-            });
+            setLastResult({ result, moves });
             setWaitingForOpponent(false);
+
+            if (result === "tie") {
+                playSound("/sounds/tie.wav");
+            } else if ((result === "creator" && socket.id === session.creator.id) ||
+                (result === "opponent" && socket.id !== session.creator.id)) {
+                playSound("/sounds/win_round.wav");
+            } else {
+                playSound("/sounds/lose_round.wav");
+            }
         });
 
         socket.on('waiting_for_move', () => {
@@ -94,6 +106,8 @@ export default function MultiplayerRPS() {
             console.log('Game finished');
             setGameSession(session);
             setGameStatus('finished');
+            const winner = session.creator.points > session.opponent?.points ? session.creator : session.opponent;
+            playSound(winner.id === socket.id ? "/sounds/win_game.wav" : "/sounds/lose_game.wav");
         });
 
         socket.on('player_disconnected', () => {
@@ -139,6 +153,7 @@ export default function MultiplayerRPS() {
         if (gameSession?.status === 'playing') {
             socket.emit('make_move', { choice, bet: currentBet });
             setWaitingForOpponent(true);
+            playSound("/sounds/button.wav")
         }
     };
 
@@ -298,13 +313,27 @@ export default function MultiplayerRPS() {
                                         })()}
                                     </div>
                                     <div className="flex items-center justify-center gap-6 md:gap-10">
-                                        <div className="text-5xl md:text-7xl">
-                                            {choices[lastResult.moves.creator.choice as Choice].emoji}
-                                        </div>
-                                        <div className="text-2xl md:text-3xl text-yellow-400 font-bold">VS</div>
-                                        <div className="text-5xl md:text-7xl">
-                                            {choices[lastResult.moves.opponent.choice as Choice].emoji}
-                                        </div>
+                                        {socket.id === gameSession?.creator.id ? (
+                                            <>
+                                                <div className="text-5xl md:text-7xl">
+                                                    {choices[lastResult.moves.creator.choice as Choice].emoji}
+                                                </div>
+                                                <div className="text-2xl md:text-3xl text-yellow-400 font-bold">VS</div>
+                                                <div className="text-5xl md:text-7xl">
+                                                    {choices[lastResult.moves.opponent.choice as Choice].emoji}
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="text-5xl md:text-7xl">
+                                                    {choices[lastResult.moves.opponent.choice as Choice].emoji}
+                                                </div>
+                                                <div className="text-2xl md:text-3xl text-yellow-400 font-bold">VS</div>
+                                                <div className="text-5xl md:text-7xl">
+                                                    {choices[lastResult.moves.creator.choice as Choice].emoji}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
