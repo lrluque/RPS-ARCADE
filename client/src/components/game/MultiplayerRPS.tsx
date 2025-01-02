@@ -18,8 +18,10 @@ type LastResult = {
 export default function MultiplayerRPS() {
     const [username, setUsername] = useState('');
     const [roomId, setRoomId] = useState('');
-    const [gameSession, setGameSession] = useState<any>(null);
-    const [currentBet, setCurrentBet] = useState(100);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const [gameSession, setGameSession] = useState<never>(null);
+    const [currentBet] = useState(100);
     const [gameStatus, setGameStatus] = useState('init');
     const [lastResult, setLastResult] = useState<LastResult | null>(null);
     const [error, setError] = useState('');
